@@ -1,0 +1,61 @@
+name: Render Stickman Paperbag 3D Short (.MP4)
+
+on:
+  workflow_dispatch:
+    inputs:
+      render_frames:
+        description: 'Rentang frame yang dirender (misal: 0-300 untuk tes cepat 10 detik, atau kosongkan untuk full 2025 frame)'
+        required: false
+        default: '0-300'
+
+jobs:
+  render-video:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 2. Auto-Extract ZIP (Jika diupload sebagai file ZIP dari HP Android)
+        run: |
+          if [ -f "claude-animated-shorts-paperbag-github.zip" ]; then
+            unzip -o claude-animated-shorts-paperbag-github.zip
+          elif [ -f "claude-animated-shorts-paperbag_2.zip" ]; then
+            unzip -o claude-animated-shorts-paperbag_2.zip
+          fi
+
+      - name: 3. Setup Python 3.11 & Audio DSP Dependencies
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 4. Install Python Packages & FFmpeg
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+          pip install numpy scipy edge-tts
+
+      - name: 5. Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 6. Run Full Pipeline (Voiceover + Audio Mix + Remotion 3D + MP4 Mux)
+        run: |
+          cd claude-animated-shorts-main
+          mkdir -p out public/bridge/kenney
+          npm install
+          python3 templates/voice/generate_voice.py
+          python3 templates/audio/mix.py
+          if [ -n "${{ github.event.inputs.render_frames }}" ]; then
+            npx remotion render src/index.ts BridgeShort out/video_silent.mp4 --frames=${{ github.event.inputs.render_frames }} --codec h264 --crf 18 --gl=angle
+          else
+            npx remotion render src/index.ts BridgeShort out/video_silent.mp4 --codec h264 --crf 18 --gl=angle
+          fi
+          ffmpeg -y -i out/video_silent.mp4 -i templates/audio/mix.wav -c:v copy -c:a aac -b:a 192k -map 0:v:0 -map 1:a:0 -shortest out/final_paperbag_short.mp4
+
+      - name: 7. Upload Hasil Video (.MP4) & Master Audio (.WAV)
+        uses: actions/upload-artifact@v4
+        with:
+          name: stickman-paperbag-mp4
+          path: |
+            claude-animated-shorts-main/out/final_paperbag_short.mp4
+            claude-animated-shorts-main/templates/audio/mix.wav

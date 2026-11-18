@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Stickman Paperbag 3D Shorts Studio — Claude Animated Shorts Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --bg-base: #0d0f14;
+    --bg-surface: #151922;
+    --bg-elevated: #1e2433;
+    --bg-card: #252c3d;
+    --primary: #f5b041;
+    --primary-dim: rgba(245, 176, 65, 0.16);
+    --accent: #38bdf8;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: rgba(255, 255, 255, 0.09);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13, 15, 20, 0.88);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(135deg, #d49a6a, #8c5832);
+    border: 2px solid #241726;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 18px; color: #1a1118;
+    box-shadow: 0 4px 12px rgba(212, 154, 106, 0.25);
+  }
+  .brand-title { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 11px; color: var(--primary); font-weight: 600; }
+  .badge-mp4 {
+    background: var(--primary-dim); color: var(--primary);
+    border: 1px solid rgba(245, 176, 65, 0.35);
+    padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    max-width: 1280px;
+    margin: 14px auto;
+    padding: 0 12px;
+  }
+  @media (min-width: 900px) {
+    .app-grid { grid-template-columns: 400px 1fr; align-items: start; }
+  }
+
+  /* Viewport Card */
+  .stage-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 9 / 16;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #090b10;
+    border: 2px solid rgba(245, 176, 65, 0.3);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.65);
+  }
+  #renderCanvas {
+    width: 100%; height: 100%; display: block;
+  }
+  .hud-overlay {
+    position: absolute; top: 10px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; pointer-events: none;
+  }
+  .hud-pill {
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+    color: #fff; font-size: 10px; font-weight: 700;
+    padding: 4px 9px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.12);
+  }
+  .rec-dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--danger); margin-right: 5px; animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* Transport Bar */
+  .transport {
+    width: 100%; margin-top: 12px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .time-row {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    flex: 1; accent-color: var(--primary); height: 6px; border-radius: 99px;
+  }
+  .btn-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .btn {
+    appearance: none; border: 1px solid var(--border);
+    background: var(--bg-elevated); color: var(--text-main);
+    padding: 11px 14px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    transition: all 0.15s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, #f5b041, #e67e22);
+    color: #12141a; border: none;
+    box-shadow: 0 4px 16px rgba(245, 176, 65, 0.3);
+  }
+  .btn-export {
+    grid-column: span 2;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #052e16; border: none; font-size: 14px; padding: 13px;
+    box-shadow: 0 4px 18px rgba(34, 197, 94, 0.32);
+  }
+  .btn-export:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Controls Panel */
+  .controls-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .tabs {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+  }
+  .tab-btn {
+    background: var(--bg-elevated); color: var(--text-muted);
+    border: 1px solid var(--border); padding: 8px 13px;
+    border-radius: 99px; font-size: 12px; font-weight: 700;
+    white-space: nowrap; cursor: pointer;
+  }
+  .tab-btn.active {
+    background: var(--primary-dim); color: var(--primary);
+    border-color: var(--primary);
+  }
+  .tab-panel { display: none; flex-direction: column; gap: 14px; }
+  .tab-panel.active { display: flex; }
+
+  .section-title {
+    font-size: 12px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--primary); margin-bottom: 4px;
+  }
+  .chip-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px;
+  }
+  .chip {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 10px;
+    font-size: 12px; font-weight: 700; color: var(--text-main);
+    text-align: center; cursor: pointer; transition: 0.15s;
+  }
+  .chip.active {
+    background: var(--primary-dim); border-color: var(--primary); color: var(--primary);
+  }
+  .scene-list { display: flex; flex-direction: column; gap: 10px; }
+  .scene-item {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .scene-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 800; color: var(--accent);
+  }
+  .form-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  label { font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px; }
+  select, input[type="text"], textarea {
+    width: 100%; background: var(--bg-base); color: var(--text-main);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 54px; }
+  .status-box {
+    background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #bae6fd; padding: 10px 12px; border-radius: var(--radius-sm);
+    font-size: 12px; line-height: 1.45;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">[ -_- ]</div>
+    <div>
+      <div class="brand-title">Paperbag 3D Shorts Studio</div>
+      <div class="brand-sub">Claude Animated Shorts Engine • Mobile Ready</div>
+    </div>
+  </div>
+  <div class="badge-mp4">1080×1920 MP4</div>
+</header>
+
+<div class="app-grid">
+  <!-- LEFT: 9:16 3D + 2D Toon Composite Viewport -->
+  <div class="stage-card">
+    <div class="canvas-wrap">
+      <canvas id="renderCanvas" width="1080" height="1920"></canvas>
+      <div class="hud-overlay">
+        <div class="hud-pill" id="hudScene">SCENE 1 • HOOK</div>
+        <div class="hud-pill" id="hudStatus">READY 30 FPS</div>
+      </div>
+    </div>
+
+    <div class="transport">
+      <div class="time-row">
+        <span id="timeLabel">00.0s / 16.0s</span>
+        <input type="range" id="timelineSlider" min="0" max="16" step="0.033" value="0">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlay">▶ Play Preview + Audio</button>
+        <button class="btn" id="btnSnapshot">📸 Save Frame PNG</button>
+        <button class="btn btn-export" id="btnExportMp4">🎬 Render & Download Video (.MP4)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Controls & Scene Sequencer -->
+  <div class="controls-card">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tabStoryboard', this)">1. 4-Scene Storyboard</button>
+      <button class="tab-btn" onclick="switchTab('tabCharacter', this)">2. Karakter Paperbag</button>
+      <button class="tab-btn" onclick="switchTab('tabWorld', this)">3. 3D World & Shader</button>
+      <button class="tab-btn" onclick="switchTab('tabAudio', this)">4. Audio DSP & Export</button>
+    </div>
+
+    <!-- TAB 1: 4-Scene Storyboard (Claude Bridge Formula) -->
+    <div class="tab-panel active" id="tabStoryboard">
+      <div class="status-box">
+        <strong>Formula Claude Animated Shorts + Stickman Paperbag:</strong> Setiap scene otomatis menggabungkan environment 3D (Three.js), karakter 2.5D <code>toon.ts</code> (600×1000 unit), kamera gliding, ink outline, & efek suara sintetis.
+      </div>
+      <div class="scene-list" id="sceneListContainer"></div>
+      <button class="btn" onclick="applyPresetStory()">⚡ Muat Preset Story: "Build Systems, Not Ego"</button>
+    </div>
+
+    <!-- TAB 2: Karakter Stickman Paperbag -->
+    <div class="tab-panel" id="tabCharacter">
+      <div>
+        <div class="section-title">Ekspresi Wajah Kantong Kertas (Sesuai Sheet)</div>
+        <div class="chip-grid" id="exprChips">
+          <div class="chip active" onclick="setQuickExpr('datar', this)">😐 Datar</div>
+          <div class="chip" onclick="setQuickExpr('skeptis', this)">🤨 Skeptis</div>
+          <div class="chip" onclick="setQuickExpr('marah', this)">😠 Marah</div>
+          <div class="chip" onclick="setQuickExpr('berpikir', this)">🤔 Berpikir (...)</div>
+          <div class="chip" onclick="setQuickExpr('santai', this)">😎 Santai (Pixel)</div>
+          <div class="chip" onclick="setQuickExpr('ending', this)">🔥 Ending Smirk</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Pose & Aksi Stickman (bodyFront / bodySide)</div>
+        <div class="chip-grid" id="poseChips">
+          <div class="chip active" onclick="setQuickPose('hands_pocket', this)">🧥 Tangan di Saku</div>
+          <div class="chip" onclick="setQuickPose('arms_crossed', this)">🙅 Lipat Tangan</div>
+          <div class="chip" onclick="setQuickPose('think_chin', this)">☝️ Pegang Dagu</div>
+          <div class="chip" onclick="setQuickPose('sit_box', this)">📦 Duduk Santai</div>
+          <div class="chip" onclick="setQuickPose('sit_cross', this)">🧘 Duduk Sila</div>
+          <div class="chip" onclick="setQuickPose('lean_wall', this)">🧱 Senderan</div>
+          <div class="chip" onclick="setQuickPose('walk_stroll', this)">🚶 Jalan Santai</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Tekstur Kusut Kertas (Crumple Intensity)</label>
+          <input type="range" id="crumpleRange" min="0.2" max="1.5" step="0.05" value="1.0" oninput="drawCurrentFrame()">
+        </div>
+        <div>
+          <label>Sudut Pandang Karakter</label>
+          <select id="charViewSelect" onchange="drawCurrentFrame()">
+            <option value="front">Tampak Depan (Front)</option>
+            <option value="three_quarter">3/4 Sinematik</option>
+            <option value="side">Tampak Samping (Profile)</option>
+            <option value="back">Tampak Belakang (Back)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Warna Hoodie</label>
+          <select id="hoodieColor" onchange="drawCurrentFrame()">
+            <option value="#18191e">Pitch Black (#18191e)</option>
+            <option value="#232733">Charcoal Slate (#232733)</option>
+            <option value="#3b1d2e">Cyber Crimson (#3b1d2e)</option>
+          </select>
+        </div>
+        <div>
+          <label>Teks Banner / Tagline Ending</label>
+          <input type="text" id="bannerTextInput" value="BUILD SYSTEMS. NOT EGO." oninput="drawCurrentFrame()">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: 3D World & Shader -->
+    <div class="tab-panel" id="tabWorld">
+      <div>
+        <div class="section-title">Environment 3D (world.ts + lights.ts)</div>
+        <div class="chip-grid">
+          <div class="chip active" onclick="setQuickEnv('rooftop_night', this)">🌃 Rooftop Night</div>
+          <div class="chip" onclick="setQuickEnv('bridge_town', this)">🌉 Bridge Town</div>
+          <div class="chip" onclick="setQuickEnv('golden_smoke', this)">🔥 Golden Ending</div>
+          <div class="chip" onclick="setQuickEnv('dark_studio', this)">⬛ Dark Studio</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Ink Outline Pass (ink.ts)</label>
+          <select id="inkToggle" onchange="drawCurrentFrame()">
+            <option value="on">Aktif (5.1px Plum/Black Ink)</option>
+            <option value="off">Nonaktif</option>
+          </select>
+        </div>
+        <div>
+          <label>Subtitle / Karaoke Captions</label>
+          <select id="captionToggle" onchange="drawCurrentFrame()">
+            <option value="on">Tampilkan Subtitle Dinamis</option>
+            <option value="off">Tanpa Subtitle (Clean Rule)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Audio DSP & Export -->
+    <div class="tab-panel" id="tabAudio">
+      <div class="status-box">
+        <strong>Audio Synthesizer (Porting <code>dsp.py</code> + <code>music.py</code> + <code>sfx.py</code>):</strong> Menghasilkan beat drum, bassline sinematik, vinyl crackle, dan whoosh transisi secara otomatis dan di-mux langsung ke dalam file video saat Export!
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Gaya Musik Latar (Procedural BGM)</label>
+          <select id="bgmStyle">
+            <option value="dark_hiphop">Dark Lo-Fi / System Beat</option>
+            <option value="march_bridge">March Cadence (Bridge Style)</option>
+            <option value="minimal_sub">Minimal Sub Bass + Tick</option>
+          </select>
+        </div>
+        <div>
+          <label>Durasi Total Video</label>
+          <select id="totalDurationSelect" onchange="updateTotalDuration()">
+            <option value="16">16 Detik (4 Scene × 4s - Fast Hook)</option>
+            <option value="24">24 Detik (4 Scene × 6s - Story)</option>
+            <option value="32">32 Detik (4 Scene × 8s - Deep Explain)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Format & Codec Export Android</label>
+        <div class="status-box" id="codecSupportInfo">Mendeteksi dukungan codec MP4/H264 di browser Android Anda...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 1. PORTING TOON.TS & PAPERBAG CHARACTER ENGINE (600x1000 Design Space)
+// ============================================================================
+const INK = "#141116";
+const BAG_BASE = "#c89666";
+const BAG_LIGHT = "#dfa974";
+const BAG_DARK = "#8c5f37";
+const BAG_SHADOW = "#5e3c1e";
+
+let SCENES = [
+  {
+    id: 1,
+    title: "HOOK (0-4s)",
+    expr: "skeptis",
+    pose: "lean_wall",
+    view: "three_quarter",
+    env: "rooftop_night",
+    camMove: "push_in",
+    text: "Kebanyakan kreator gagal bukan karena kurang ide, tapi karena kerja pakai mood."
+  },
+  {
+    id: 2,
+    title: "ESCALATION (4-8s)",
+    expr: "marah",
+    pose: "arms_crossed",
+    view: "front",
+    env: "bridge_town",
+    camMove: "pan_right",
+    text: "Tiap hari sibuk edit manual berjam-jam, begitu views sepi langsung burnout."
+  },
+  {
+    id: 3,
+    title: "PIVOT / ANALOGY (8-12s)",
+    expr: "berpikir",
+    pose: "think_chin",
+    view: "front",
+    env: "rooftop_night",
+    camMove: "orbit",
+    text: "Padahal kalau kamu rakit sistem otomatis, satu skrip bisa jalan sendiri tanpa drama."
+  },
+  {
+    id: 4,
+    title: "PAYOFF / ENDING (12-16s)",
+    expr: "santai",
+    pose: "arms_crossed",
+    view: "three_quarter",
+    env: "golden_smoke",
+    camMove: "dramatic_low",
+    text: "BUILD SYSTEMS. NOT EGO."
+  }
+];
+
+let totalDuration = 16.0;
+let currentTime = 0.0;
+let isPlaying = false;
+let isRecording = false;
+let animFrameId = null;
+let lastTick = 0;
+
+// Deterministic hash for procedural paperbag crumples
+function rnd(seed, k) {
+  const x = Math.sin(seed * 127.1 + k * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// Render UI for 4 scenes
+function renderSceneInputs() {
+  const container = document.getElementById("sceneListContainer");
+  container.innerHTML = "";
+  const segDur = totalDuration / SCENES.length;
+  SCENES.forEach((sc, idx) => {
+    const t0 = (idx * segDur).toFixed(1);
+    const t1 = ((idx + 1) * segDur).toFixed(1);
+    const div = document.createElement("div");
+    div.className = "scene-item";
+    div.innerHTML = `
+      <div class="scene-head">
+        <span>SCENE ${idx + 1}: ${sc.title} (${t0}s - ${t1}s)</span>
+        <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="jumpToScene(${idx})">Preview</button>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Ekspresi Paperbag</label>
+          <select onchange="SCENES[${idx}].expr=this.value; drawCurrentFrame()">
+            <option value="datar" ${sc.expr==='datar'?'selected':''}>😐 Datar</option>
+            <option value="skeptis" ${sc.expr==='skeptis'?'selected':''}>🤨 Skeptis</option>
+            <option value="marah" ${sc.expr==='marah'?'selected':''}>😠 Marah</option>
+            <option value="berpikir" ${sc.expr==='berpikir'?'selected':''}>🤔 Berpikir (...)</option>
+            <option value="santai" ${sc.expr==='santai'?'selected':''}>😎 Santai (Kacamata Pixel)</option>
+            <option value="ending" ${sc.expr==='ending'?'selected':''}>🔥 Ending Smirk</option>
+          </select>
+        </div>
+        <div>
+          <label>Pose Tubuh</label>
+          <select onchange="SCENES[${idx}].pose=this.value; drawCurrentFrame()">
+            <option value="hands_pocket" ${sc.pose==='hands_pocket'?'selected':''}>🧥 Tangan di Saku</option>
+            <option value="arms_crossed" ${sc.pose==='arms_crossed'?'selected':''}>🙅 Lipat Tangan</option>
+            <option value="think_chin" ${sc.pose==='think_chin'?'selected':''}>☝️ Pegang Dagu</option>
+            <option value="sit_box" ${sc.pose==='sit_box'?'selected':''}>📦 Duduk di Box</option>
+            <option value="sit_cross" ${sc.pose==='sit_cross'?'selected':''}>🧘 Duduk Sila</option>
+            <option value="lean_wall" ${sc.pose==='lean_wall'?'selected':''}>🧱 Senderan Rooftop</option>
+            <option value="walk_stroll" ${sc.pose==='walk_stroll'?'selected':''}>🚶 Jalan Santai</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Environment 3D</label>
+          <select onchange="SCENES[${idx}].env=this.value; drawCurrentFrame()">
+            <option value="rooftop_night" ${sc.env==='rooftop_night'?'selected':''}>🌃 Rooftop Night City</option>
+            <option value="bridge_town" ${sc.env==='bridge_town'?'selected':''}>🌉 Bridge Town 3D</option>
+            <option value="golden_smoke" ${sc.env==='golden_smoke'?'selected':''}>🔥 Golden Rim Smoke</option>
+            <option value="dark_studio" ${sc.env==='dark_studio'?'selected':''}>⬛ Dark Studio</option>
+          </select>
+        </div>
+        <div>
+          <label>Sudut Kamera</label>
+          <select onchange="SCENES[${idx}].view=this.value; drawCurrentFrame()">
+            <option value="front" ${sc.view==='front'?'selected':''}>Tampak Depan</option>
+            <option value="three_quarter" ${sc.view==='three_quarter'?'selected':''}>3/4 Sinematik</option>
+            <option value="side" ${sc.view==='side'?'selected':''}>Tampak Samping</option>
+            <option value="back" ${sc.view==='back'?'selected':''}>Tampak Belakang</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Narasi / Subtitle Scene ${idx + 1}</label>
+        <textarea oninput="SCENES[${idx}].text=this.value; drawCurrentFrame()">${sc.text}</textarea>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function jumpToScene(idx) {
+  const segDur = totalDuration / SCENES.length;
+  currentTime = idx * segDur + 0.1;
+  document.getElementById("timelineSlider").value = currentTime;
+  drawCurrentFrame();
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+  btn.classList.add("active");
+}
+
+function getActiveSceneIndex(t) {
+  const segDur = totalDuration / SCENES.length;
+  return Math.min(SCENES.length - 1, Math.floor(t / segDur));
+}
+
+function setQuickExpr(expr, el) {
+  document.querySelectorAll("#exprChips .chip").forEach(c => c.classList.remove("active"));
+  el.classList.add("active");
+  const idx = getActiveSceneIndex(currentTime);
+  SCENES[idx].expr = expr;
+  renderSceneInputs();
+  drawCurrentFrame();
+}
+
+function setQuickPose(pose, el) {
+  document.querySelectorAll("#poseChips .chip").forEach(c => c.classList.remove("active"));
+  el.classList.add("active");
+  const idx = getActiveSceneIndex(currentTime);
+  SCENES[idx].pose = pose;
+  renderSceneInputs();
+  drawCurrentFrame();
+}
+
+function setQuickEnv(env, el) {
+  const idx = getActiveSceneIndex(currentTime);
+  SCENES[idx].env = env;
+  renderSceneInputs();
+  drawCurrentFrame();
+}
+
+function updateTotalDuration() {
+  totalDuration = parseFloat(document.getElementById("totalDurationSelect").value);
+  const slider = document.getElementById("timelineSlider");
+  slider.max = totalDuration;
+  if (currentTime > totalDuration) currentTime = 0;
+  renderSceneInputs();
+  drawCurrentFrame();
+}
+
+function applyPresetStory() {
+  SCENES[0].text = "Seventy-four soldiers knocked down an iron bridge just by walking across it.";
+  SCENES[0].expr = "skeptis"; SCENES[0].pose = "walk_stroll"; SCENES[0].env = "bridge_town";
+  SCENES[1].text = "Bukan karena beban berat, tapi karena langkah kaki yang serempak mengguncang ritme jembatan.";
+  SCENES[1].expr = "marah"; SCENES[1].pose = "arms_crossed"; SCENES[1].env = "bridge_town";
+  SCENES[2].text = "Sama seperti konten: konsistensi kecil di waktu yang tepat bakal meruntuhkan algoritma.";
+  SCENES[2].expr = "berpikir"; SCENES[2].pose = "think_chin"; SCENES[2].env = "rooftop_night";
+  SCENES[3].text = "BUILD SYSTEMS. NOT EGO.";
+  SCENES[3].expr = "ending"; SCENES[3].pose = "arms_crossed"; SCENES[3].env = "golden_smoke";
+  renderSceneInputs();
+  drawCurrentFrame();
+}
+
+// ============================================================================
+// 2. THREE.JS 3D WORLD ENGINE (Rooftop Night, Bridge Town, Golden Smoke)
+// ============================================================================
+const offThreeCanvas = document.createElement("canvas");
+offThreeCanvas.width = 540;
+offThreeCanvas.height = 960;
+const renderer = new THREE.WebGLRenderer({ canvas: offThreeCanvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(540, 960, false);
+
+const scene3D = new THREE.Scene();
+const camera3D = new THREE.PerspectiveCamera(45, 540 / 960, 0.1, 200);
+
+// Build 3D City & Rooftop & Bridge Groups
+const groupRooftop = new THREE.Group();
+const groupBridge = new THREE.Group();
+scene3D.add(groupRooftop);
+scene3D.add(groupBridge);
+
+const ambLight = new THREE.AmbientLight(0x90a4ce, 0.7);
+scene3D.add(ambLight);
+const dirLight = new THREE.DirectionalLight(0xffd296, 1.4);
+dirLight.position.set(8, 15, 10);
+scene3D.add(dirLight);
+
+// Populate Rooftop Night 3D Geometry (matching image 2)
+(function initRooftop3D() {
+  // Concrete rooftop floor
+  const floorMat = new THREE.MeshLambertMaterial({ color: 0x1d222b });
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(20, 1, 20), floorMat);
+  floor.position.set(0, -0.5, 0);
+  groupRooftop.add(floor);
+
+  // Parapet ledge
+  const ledgeMat = new THREE.MeshLambertMaterial({ color: 0x2c323f });
+  const ledge = new THREE.Mesh(new THREE.BoxGeometry(20, 0.35, 0.8), ledgeMat);
+  ledge.position.set(0, 0.17, -2.2);
+  groupRooftop.add(ledge);
+
+  // Iron Railing (pagar besi rooftop)
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x12151c });
+  const topBar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 16, 8), railMat);
+  topBar.rotation.z = Math.PI / 2;
+  topBar.position.set(0, 1.25, -2.2);
+  groupRooftop.add(topBar);
+
+  for (let x = -7.5; x <= 7.5; x += 0.45) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.1, 6), railMat);
+    post.position.set(x, 0.7, -2.2);
+    groupRooftop.add(post);
+  }
+
+  // Water Tower in background
+  const towerGroup = new THREE.Group();
+  const tankMat = new THREE.MeshLambertMaterial({ color: 0x3a322d });
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 2.4, 14), tankMat);
+  tank.position.y = 3.2;
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.9, 14), new THREE.MeshLambertMaterial({ color: 0x26211e }));
+  roof.position.y = 4.85;
+  towerGroup.add(tank, roof);
+  towerGroup.position.set(-4.8, 0, -9.5);
+  groupRooftop.add(towerGroup);
+
+  // Background Skyscrapers with glowing windows
+  for (let i = 0; i < 18; i++) {
+    const bw = 2.2 + (i % 3) * 0.9;
+    const bh = 8 + (i % 5) * 3.5;
+    const bx = -18 + i * 2.3;
+    const bz = -14 - (i % 4) * 4.5;
+    const bMat = new THREE.MeshLambertMaterial({ color: i % 2 === 0 ? 0x121722 : 0x181e2c });
+    const bMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), bMat);
+    bMesh.position.set(bx, bh / 2 - 4, bz);
+    groupRooftop.add(bMesh);
+
+    // Glowing windows
+    const winMat = new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? 0xffd082 : 0xf5b041 });
+    for (let wy = 0; wy < bh - 2; wy += 1.1) {
+      for (let wx = -bw/2 + 0.4; wx < bw/2 - 0.3; wx += 0.65) {
+        if (rnd(i * 19 + wy * 7, wx * 3) > 0.45) {
+          const wMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.42), winMat);
+          wMesh.position.set(bx + wx, wy - 2, bz + bw / 2 + 0.02);
+          groupRooftop.add(wMesh);
+        }
+      }
+    }
+  }
+})();
+
+// Populate Bridge Town 3D Geometry (from claude-animated-shorts world.ts)
+(function initBridge3D() {
+  // River water
+  const river = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 60),
+    new THREE.MeshLambertMaterial({ color: 0x1a6ca8 })
+  );
+  river.rotation.x = -Math.PI / 2;
+  river.position.y = -1.8;
+  groupBridge.add(river);
+
+  // Bridge Deck
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(14, 0.35, 3.6),
+    new THREE.MeshLambertMaterial({ color: 0x9b6b43 })
+  );
+  deck.position.set(0, -0.15, -1.2);
+  groupBridge.add(deck);
+
+  // Stone Towers
+  for (const sx of [-5.5, 5.5]) {
+    const tower = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 5.5, 4.2),
+      new THREE.MeshLambertMaterial({ color: 0x8d8276 })
+    );
+    tower.position.set(sx, 1.2, -1.2);
+    groupBridge.add(tower);
+  }
+
+  // Painted Town Houses
+  const houseCols = [0xb5653f, 0xd9a441, 0x8c3b4a, 0x5d7a3a, 0x3f6fb5];
+  for (let i = 0; i < 10; i++) {
+    const hMat = new THREE.MeshLambertMaterial({ color: houseCols[i % houseCols.length] });
+    const hMesh = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.2 + (i % 3), 2.6), hMat);
+    hMesh.position.set(-12 + i * 2.7, 1.5, -11 - (i % 2) * 2);
+    groupBridge.add(hMesh);
+  }
+})();
+
+function renderThreeWorld(env, t, sceneLocalT) {
+  groupRooftop.visible = (env === "rooftop_night");
+  groupBridge.visible = (env === "bridge_town");
+
+  if (env === "rooftop_night") {
+    scene3D.background = new THREE.Color(0x0b101b);
+    scene3D.fog = new THREE.FogExp2(0x0f1726, 0.035);
+    ambLight.color.setHex(0x6c85b5);
+    dirLight.color.setHex(0xffb86c);
+  } else if (env === "bridge_town") {
+    scene3D.background = new THREE.Color(0x5e93d9);
+    scene3D.fog = new THREE.FogExp2(0xb8d0ec, 0.025);
+    ambLight.color.setHex(0xdcecff);
+    dirLight.color.setHex(0xfff3e0);
+  } else if (env === "golden_smoke") {
+    scene3D.background = new THREE.Color(0x140f0c);
+    scene3D.fog = new THREE.FogExp2(0x26180f, 0.05);
+    ambLight.color.setHex(0x8a5a36);
+    dirLight.color.setHex(0xff9d3b);
+  } else {
+    scene3D.background = new THREE.Color(0x0f1117);
+    scene3D.fog = null;
+  }
+
+  // Camera gliding grammar (story.ts continuous slow push-in)
+  const push = sceneLocalT * 0.18;
+  camera3D.position.set(Math.sin(t * 0.35) * 0.4, 1.55, 4.8 - push);
+  camera3D.lookAt(0, 1.35, -2.0);
+  renderer.render(scene3D, camera3D);
+}
+
+// ============================================================================
+// 3. STICKMAN PAPERBAG 2.5D GENERATOR (Crumpled Facets + Hoodie + Sneakers)
+// ============================================================================
+function drawPaperbagCharacter(ctx, W, H, opts) {
+  const {
+    expr = "datar",
+    pose = "hands_pocket",
+    view = "front",
+    crumple = 1.0,
+    hoodieHex = "#18191e",
+    time = 0,
+    isEnding = false
+  } = opts;
+
+  ctx.save();
+  // Scale 600x1000 design space into 1080x1920 vertical frame
+  const scale = isEnding ? 1.85 : 1.38;
+  const cx = W * 0.5;
+  const baseY = isEnding ? H * 1.22 : H * 0.84;
+
+  // Walk / breathe bobbing
+  const walkPhase = (time * 1.8) % 1;
+  const bobY = pose === "walk_stroll"
+    ? Math.abs(Math.sin(walkPhase * Math.PI * 2)) * 18
+    : Math.sin(time * 2.6) * 4;
+
+  ctx.translate(cx, baseY - bobY);
+  ctx.scale(scale, scale);
+
+  const inkOn = document.getElementById("inkToggle")?.value !== "off";
+  const inkW = inkOn ? 5.5 : 1.5;
+
+  // Facing offset (-1 left, 0 front, +1 right)
+  const facing = view === "side" ? 1.0 : view === "three_quarter" ? 0.45 : 0;
+
+  // -------------------------------------------------------------------------
+  // A. GROUND CONTACT SHADOW (fxContact / fxShadow from toon.ts)
+  // -------------------------------------------------------------------------
+  if (!isEnding) {
+    const shGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 165);
+    shGrad.addColorStop(0, "rgba(0, 0, 0, 0.72)");
+    shGrad.addColorStop(0.6, "rgba(0, 0, 0, 0.28)");
+    shGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = shGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 155, 28, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Optional crate prop for sit_box pose
+  if (pose === "sit_box" && !isEnding) {
+    ctx.fillStyle = "#191c24";
+    ctx.strokeStyle = "#0a0b0e";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.roundRect(-145, -195, 190, 195, 8);
+    ctx.fill();
+    ctx.stroke();
+    // Highlight rim on box
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-138, -188, 176, 180);
+  }
+
+  // -------------------------------------------------------------------------
+  // B. STICKMAN LEGS & HIGH-TOP SNEAKERS (Match Reference Sheet Image 1)
+  // -------------------------------------------------------------------------
+  let hipY = -360;
+  if (pose === "sit_box") hipY = -210;
+  if (pose === "sit_cross") hipY = -105;
+
+  function drawHighTopSneaker(fx, fy, dir = 1, tiltDeg = 0) {
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.rotate((tiltDeg * Math.PI) / 180);
+    ctx.scale(dir, 1);
+
+    // High-top ankle collar
+    ctx.fillStyle = "#14161b";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.roundRect(-24, -52, 48, 42, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Main shoe body
+    ctx.beginPath();
+    ctx.moveTo(-26, -18);
+    ctx.lineTo(32, -16);
+    ctx.quadraticCurveTo(56, -14, 62, 0);
+    ctx.lineTo(-28, 0);
+    ctx.closePath();
+    ctx.fillStyle = "#181a20";
+    ctx.fill();
+    ctx.stroke();
+
+    // White Toe Cap (Sepatu Sederhana detail in Image 1)
+    ctx.beginPath();
+    ctx.moveTo(30, -15);
+    ctx.quadraticCurveTo(58, -14, 62, 0);
+    ctx.lineTo(28, 0);
+    ctx.closePath();
+    ctx.fillStyle = "#f1f5f9";
+    ctx.fill();
+    ctx.stroke();
+
+    // Two White Side Stripes (Converse/Vans hybrid style from reference)
+    ctx.strokeStyle = "#f1f5f9";
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(-2, -26); ctx.lineTo(6, -4);
+    ctx.moveTo(10, -25); ctx.lineTo(18, -4);
+    ctx.stroke();
+
+    // White Laces
+    ctx.lineWidth = 3;
+    for (let ly = -42; ly <= -22; ly += 7) {
+      ctx.beginPath();
+      ctx.moveTo(14, ly); ctx.lineTo(25, ly + 2);
+      ctx.stroke();
+    }
+
+    // Thick White Rubber Midsole + Black Outsole Line
+    ctx.fillStyle = "#f8fafc";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(-30, -2, 95, 15, 5);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-26, 6); ctx.lineTo(60, 6);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawStickLeg(hx, hy, kx, ky, fx, fy) {
+    // Outer dark ink + cylindrical highlight on stick leg
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#090a0d";
+    ctx.lineWidth = 22;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.quadraticCurveTo(kx, ky, fx, fy);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#262b38";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(hx - 3, hy);
+    ctx.quadraticCurveTo(kx - 3, ky, fx - 3, fy);
+    ctx.stroke();
+
+    // Metallic knee joint ring
+    ctx.fillStyle = "#1c2029";
+    ctx.beginPath();
+    ctx.arc(kx, ky, 10, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (pose === "sit_cross") {
+    // Cross-legged sitting pose (Pose Dasar bottom-left)
+    drawStickLeg(-35, hipY, -115, hipY + 35, -20, hipY + 82);
+    drawStickLeg(35, hipY, 115, hipY + 35, 20, hipY + 82);
+    drawHighTopSneaker(-55, hipY + 86, -1, 12);
+    drawHighTopSneaker(55, hipY + 86, 1, -12);
+  } else if (pose === "sit_box") {
+    drawStickLeg(-32, hipY, -65, -110, -55, -14);
+    drawStickLeg(32, hipY, 45, -110, 52, -14);
+    drawHighTopSneaker(-55, -12, -1, 0);
+    drawHighTopSneaker(52, -12, 1, 0);
+  } else if (pose === "lean_wall") {
+    // Leaning casually with one leg crossed
+    drawStickLeg(-24, hipY, -28, -180, -24, -14);
+    drawStickLeg(26, hipY, 68, -175, -6, -32);
+    drawHighTopSneaker(-24, -12, -1, 0);
+    drawHighTopSneaker(2, -26, 1, 28);
+  } else if (pose === "walk_stroll") {
+    const s1 = Math.sin(walkPhase * Math.PI * 2) * 55;
+    const l1 = Math.max(0, Math.cos(walkPhase * Math.PI * 2)) * 28;
+    const s2 = -s1;
+    const l2 = Math.max(0, -Math.cos(walkPhase * Math.PI * 2)) * 28;
+    drawStickLeg(-25, hipY, -25 + s1 * 0.5, -185 - l1 * 0.5, -25 + s1, -14 - l1);
+    drawStickLeg(25, hipY, 25 + s2 * 0.5, -185 - l2 * 0.5, 25 + s2, -14 - l2);
+    drawHighTopSneaker(-25 + s1, -12 - l1, 1, s1 * 0.25);
+    drawHighTopSneaker(25 + s2, -12 - l2, 1, s2 * 0.25);
+  } else {
+    // Standing poses (hands_pocket, arms_crossed, think_chin)
+    const spread = view === "side" ? 12 : 44;
+    drawStickLeg(-spread, hipY, -spread - 4, -185, -spread - 8, -14);
+    drawStickLeg(spread, hipY, spread + 4, -185, spread + 8, -14);
+    drawHighTopSneaker(-spread - 8, -12, view === "side" ? 1 : -1, 0);
+    drawHighTopSneaker(spread + 8, -12, 1, 0);
+  }
+
+  // -------------------------------------------------------------------------
+  // C. BLACK HOODIE TORSO & ARMS (3D Stylized Shading + Kangaroo Pocket)
+  // -------------------------------------------------------------------------
+  const torsoTop = hipY - 215;
+  const torsoCx = facing * 12;
+
+  // Back hood collar
+  ctx.fillStyle = "#101217";
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = inkW;
+  ctx.beginPath();
+  ctx.ellipse(torsoCx, torsoTop + 8, 76, 28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Main Hoodie Body with 3D rim-lit gradient
+  const hGrad = ctx.createLinearGradient(torsoCx - 95, torsoTop, torsoCx + 95, hipY);
+  hGrad.addColorStop(0, "#323746");
+  hGrad.addColorStop(0.25, hoodieHex);
+  hGrad.addColorStop(0.85, "#0e1015");
+  hGrad.addColorStop(1, isEnding ? "#6e4826" : "#252a38");
+
+  ctx.fillStyle = hGrad;
+  ctx.beginPath();
+  ctx.moveTo(torsoCx - 68, torsoTop + 10);
+  ctx.quadraticCurveTo(torsoCx - 92, (torsoTop + hipY) / 2, torsoCx - 74, hipY);
+  ctx.lineTo(torsoCx + 74, hipY);
+  ctx.quadraticCurveTo(torsoCx + 92, (torsoTop + hipY) / 2, torsoCx + 68, torsoTop + 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Ribbed Hoodie Waistband Hem
+  ctx.fillStyle = "#12141c";
+  ctx.beginPath();
+  ctx.roundRect(torsoCx - 73, hipY - 22, 146, 26, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  if (view !== "back") {
+    // Kangaroo Pocket
+    ctx.fillStyle = "#141720";
+    ctx.strokeStyle = "#0b0d12";
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(torsoCx - 52, hipY - 24);
+    ctx.lineTo(torsoCx - 38, hipY - 78);
+    ctx.lineTo(torsoCx + 38, hipY - 78);
+    ctx.lineTo(torsoCx + 52, hipY - 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Center zipper seam & drawstrings
+    ctx.strokeStyle = "#090a0f";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(torsoCx, torsoTop + 18);
+    ctx.lineTo(torsoCx, hipY - 22);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#2b303c";
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(torsoCx - 16, torsoTop + 22);
+    ctx.quadraticCurveTo(torsoCx - 20, torsoTop + 65, torsoCx - 15, torsoTop + 95);
+    ctx.moveTo(torsoCx + 16, torsoTop + 22);
+    ctx.quadraticCurveTo(torsoCx + 20, torsoTop + 65, torsoCx + 15, torsoTop + 95);
+    ctx.stroke();
+  } else {
+    // Back Hood Shape (Tampak Belakang in Image 1)
+    ctx.fillStyle = "#1c202b";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(torsoCx - 62, torsoTop + 12);
+    ctx.quadraticCurveTo(torsoCx - 75, torsoTop + 95, torsoCx, torsoTop + 108);
+    ctx.quadraticCurveTo(torsoCx + 75, torsoTop + 95, torsoCx + 62, torsoTop + 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Hoodie Arms based on Pose
+  function drawSleeve(sx, sy, ex, ey, hx, hy, glove = false) {
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 40;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.quadraticCurveTo(ex, ey, hx, hy);
+    ctx.stroke();
+
+    ctx.strokeStyle = hoodieHex;
+    ctx.lineWidth = 32;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.quadraticCurveTo(ex, ey, hx, hy);
+    ctx.stroke();
+
+    // Rim highlight on sleeve
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(sx - 6, sy);
+    ctx.quadraticCurveTo(ex - 6, ey, hx - 4, hy);
+    ctx.stroke();
+
+    if (glove) {
+      ctx.fillStyle = "#101218";
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  const shY = torsoTop + 28;
+  if (pose === "arms_crossed") {
+    drawSleeve(torsoCx - 66, shY, torsoCx - 92, shY + 88, torsoCx + 28, shY + 95, true);
+    drawSleeve(torsoCx + 66, shY, torsoCx + 92, shY + 88, torsoCx - 28, shY + 102, true);
+  } else if (pose === "think_chin" || expr === "berpikir") {
+    // Left hand in pocket, right hand touching chin (Ekspresi Berpikir Image 1)
+    drawSleeve(torsoCx - 66, shY, torsoCx - 98, shY + 85, torsoCx - 44, hipY - 48, false);
+    drawSleeve(torsoCx + 66, shY, torsoCx + 105, shY + 70, torsoCx + 18, torsoTop - 12, true);
+    // Thinking index finger on chin
+    ctx.strokeStyle = "#101218";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(torsoCx + 18, torsoTop - 12);
+    ctx.lineTo(torsoCx + 8, torsoTop - 38);
+    ctx.stroke();
+  } else {
+    // Default hands in hoodie kangaroo pocket
+    drawSleeve(torsoCx - 66, shY, torsoCx - 102, shY + 84, torsoCx - 44, hipY - 48, false);
+    drawSleeve(torsoCx + 66, shY, torsoCx + 102, shY + 84, torsoCx + 44, hipY - 48, false);
+  }
+
+  // -------------------------------------------------------------------------
+  // D. CRUMPLED PAPERBAG HEAD (Low-Poly Facets + Creases + 5 Expressions)
+  // -------------------------------------------------------------------------
+  const bagW = 215;
+  const bagH = 240;
+  const bagCx = torsoCx;
+  const bagCy = torsoTop - bagH * 0.48;
+
+  ctx.save();
+  ctx.translate(bagCx, bagCy);
+  const headTilt = expr === "skeptis" ? -0.055 : expr === "berpikir" ? 0.045 : isEnding ? -0.06 : 0;
+  ctx.rotate(headTilt + Math.sin(time * 1.7) * 0.015);
+
+  const hw = bagW / 2;
+  const hh = bagH / 2;
+
+  // Paperbag outer silhouette with subtle crumpled organic edges and jagged bottom folds
+  const bagPath = [
+    [-hw + 4, -hh + 2],
+    [-hw * 0.35, -hh - 3],
+    [hw * 0.35, -hh + 1],
+    [hw - 3, -hh - 2],
+    [hw + 4, -hh * 0.3],
+    [hw - 2, hh * 0.35],
+    [hw + 5, hh - 8],
+    [hw * 0.55, hh + 4],
+    [hw * 0.2, hh - 6],
+    [-hw * 0.18, hh + 5],
+    [-hw * 0.6, hh - 5],
+    [-hw - 4, hh + 2],
+    [-hw + 2, hh * 0.3],
+    [-hw - 5, -hh * 0.35]
+  ];
+
+  ctx.beginPath();
+  bagPath.forEach(([px, py], i) => {
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+
+  // Base Kraft Paper Gradient
+  const bagGrad = ctx.createLinearGradient(-hw, -hh, hw, hh);
+  bagGrad.addColorStop(0, BAG_LIGHT);
+  bagGrad.addColorStop(0.55, BAG_BASE);
+  bagGrad.addColorStop(1, BAG_DARK);
+  ctx.fillStyle = bagGrad;
+  ctx.fill();
+
+  // Clip inside the paperbag to draw procedural 3D crumpled facets (Tekstur Kantong Kertas)
+  ctx.save();
+  ctx.clip();
+
+  const cols = 6, rows = 7;
+  const cellW = bagW / cols, cellH = bagH / rows;
+  const grid = [];
+  for (let r = 0; r <= rows; r++) {
+    grid[r] = [];
+    for (let c = 0; c <= cols; c++) {
+      const jx = (r > 0 && r < rows && c > 0 && c < cols) ? (rnd(r * 13 + c, 1) - 0.5) * cellW * 0.55 : 0;
+      const jy = (r > 0 && r < rows && c > 0 && c < cols) ? (rnd(r * 17 + c, 2) - 0.5) * cellH * 0.55 : 0;
+      grid[r][c] = [-hw + c * cellW + jx, -hh + r * cellH + jy];
+    }
+  }
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const p00 = grid[r][c], p10 = grid[r][c + 1], p01 = grid[r + 1][c], p11 = grid[r + 1][c + 1];
+      // Two triangles per grid cell with alternating warm/shadow kraft tones
+      const shade1 = (rnd(r * 7 + c, 3) - 0.48) * 0.28 * crumple;
+      const shade2 = (rnd(r * 11 + c, 4) - 0.52) * 0.28 * crumple;
+
+      ctx.fillStyle = shade1 > 0
+        ? `rgba(255, 224, 185, ${Math.min(0.45, shade1)})`
+        : `rgba(62, 35, 14, ${Math.min(0.55, -shade1)})`;
+      ctx.beginPath();
+      ctx.moveTo(p00[0], p00[1]); ctx.lineTo(p10[0], p10[1]); ctx.lineTo(p11[0], p11[1]);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = shade2 > 0
+        ? `rgba(255, 220, 175, ${Math.min(0.45, shade2)})`
+        : `rgba(55, 30, 10, ${Math.min(0.55, -shade2)})`;
+      ctx.beginPath();
+      ctx.moveTo(p00[0], p00[1]); ctx.lineTo(p11[0], p11[1]); ctx.lineTo(p01[0], p01[1]);
+      ctx.closePath();
+      ctx.fill();
+
+      // Subtle crease ridge lines
+      ctx.strokeStyle = `rgba(70, 40, 18, ${0.18 * crumple})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(p00[0], p00[1]); ctx.lineTo(p11[0], p11[1]);
+      ctx.stroke();
+    }
+  }
+
+  // Side fold gusset shadow (for 3/4 and side views)
+  if (view !== "front") {
+    ctx.fillStyle = "rgba(42, 24, 10, 0.38)";
+    ctx.fillRect(-hw, -hh, bagW * 0.26, bagH);
+    ctx.strokeStyle = "rgba(30, 16, 6, 0.55)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-hw + bagW * 0.26, -hh);
+    ctx.lineTo(-hw + bagW * 0.24, hh);
+    ctx.stroke();
+  }
+
+  // Top serrated edge of paperbag
+  ctx.strokeStyle = "rgba(90, 52, 22, 0.65)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let sx = -hw; sx <= hw; sx += 12) {
+    ctx.lineTo(sx, -hh + (sx % 24 === 0 ? 4 : -2));
+  }
+  ctx.stroke();
+
+  ctx.restore(); // End clip
+
+  // Outer Ink Ring around Paperbag
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = inkW;
+  ctx.beginPath();
+  bagPath.forEach(([px, py], i) => {
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+  ctx.stroke();
+
+  // -------------------------------------------------------------------------
+  // E. 5 SIGNATURE EXPRESSIONS (Match Reference Sheet Image 1)
+  // -------------------------------------------------------------------------
+  if (view !== "back") {
+    const faceOffsetX = view === "side" ? 42 : view === "three_quarter" ? 20 : 0;
+    ctx.translate(faceOffsetX, 12);
+    ctx.fillStyle = "#181412";
+    ctx.strokeStyle = "#181412";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // Auto-blink every ~2.4s (from cast.ts lidAt)
+    const isBlinking = ((time * 30) % 75) < 3;
+
+    if (expr === "santai") {
+      // 😎 SANTAI: 8-bit Pixelated Sunglasses + Cool Curved Smile
+      const pw = 11; // pixel block size
+      // Draw black pixel bar across eyes
+      ctx.fillStyle = "#111318";
+      ctx.fillRect(-66, -28, 132, pw);
+      // Left lens pixels
+      ctx.fillRect(-58, -28 + pw, 48, pw);
+      ctx.fillRect(-50, -28 + pw * 2, 34, pw);
+      // Right lens pixels
+      ctx.fillRect(10, -28 + pw, 48, pw);
+      ctx.fillRect(16, -28 + pw * 2, 34, pw);
+      // White pixel glint on lenses
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(-48, -28 + pw, pw * 0.8, pw * 0.8);
+      ctx.fillRect(20, -28 + pw, pw * 0.8, pw * 0.8);
+
+      // Relaxed happy smile
+      ctx.strokeStyle = "#181412";
+      ctx.lineWidth = 8.5;
+      ctx.beginPath();
+      ctx.arc(0, 26, 26, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+
+    } else {
+      // Eyes for Datar, Skeptis, Marah, Berpikir, Ending
+      for (const side of [-1, 1]) {
+        const ex = side * 36;
+        const ey = -4;
+        if (isBlinking) {
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.moveTo(ex - 14, ey); ctx.lineTo(ex + 14, ey);
+          ctx.stroke();
+        } else {
+          // Half-lidded deadpan circular eye (signature look)
+          ctx.beginPath();
+          ctx.arc(ex, ey, 11.5, 0, Math.PI);
+          ctx.fill();
+        }
+      }
+
+      // Eyebrows & Mouth per Expression
+      ctx.lineWidth = 9.5;
+      if (expr === "datar") {
+        // 😐 DATAR: Flat horizontal brows + straight flat mouth
+        ctx.beginPath();
+        ctx.moveTo(-56, -12); ctx.lineTo(-16, -12);
+        ctx.moveTo(16, -12); ctx.lineTo(56, -12);
+        ctx.moveTo(-24, 34); ctx.lineTo(24, 34);
+        ctx.stroke();
+      } else if (expr === "skeptis") {
+        // 🤨 SKEPTIS: Left brow flat/low, Right brow arched sharply with tick, slanted mouth
+        ctx.beginPath();
+        ctx.moveTo(-56, -10); ctx.lineTo(-16, -6);
+        // Raised right skeptical brow
+        ctx.moveTo(14, -14); ctx.lineTo(38, -28); ctx.lineTo(56, -16);
+        // Slanted skeptical mouth
+        ctx.moveTo(-22, 36); ctx.lineTo(22, 28);
+        ctx.stroke();
+      } else if (expr === "marah") {
+        // 😠 MARAH: Deep V-angled angry brows + frown arc
+        ctx.beginPath();
+        ctx.moveTo(-56, -24); ctx.lineTo(-14, -4);
+        ctx.moveTo(56, -24); ctx.lineTo(14, -4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 46, 22, 1.15 * Math.PI, 1.85 * Math.PI);
+        ctx.stroke();
+      } else if (expr === "berpikir") {
+        // 🤔 BERPIKIR: Three dots (...) above brows + neutral/slightly asymmetric brows + small mouth
+        for (const dx of [-18, 0, 18]) {
+          ctx.beginPath();
+          ctx.arc(dx, -36, 4.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.moveTo(-56, -12); ctx.lineTo(-16, -14);
+        ctx.moveTo(16, -16); ctx.lineTo(56, -10);
+        ctx.moveTo(-14, 34); ctx.lineTo(14, 32);
+        ctx.stroke();
+      } else if (expr === "ending") {
+        // 🔥 ENDING LOOK: Confident angled brows + signature side smirk
+        ctx.beginPath();
+        ctx.moveTo(-56, -14); ctx.lineTo(-16, -8);
+        ctx.moveTo(16, -10); ctx.lineTo(56, -18);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-20, 28);
+        ctx.quadraticCurveTo(6, 42, 28, 20);
+        ctx.stroke();
+      }
+    }
+  }
+
+  ctx.restore(); // End head transform
+  ctx.restore(); // End character transform
+}
+
+// ============================================================================
+// 4. COMPOSITE FRAME RENDERER (Three.js + Paperbag Toon + Post + Captions)
+// ============================================================================
+const mainCanvas = document.getElementById("renderCanvas");
+const mainCtx = mainCanvas.getContext("2d");
+
+function drawCurrentFrame() {
+  const W = mainCanvas.width;
+  const H = mainCanvas.height;
+  const idx = getActiveSceneIndex(currentTime);
+  const segDur = totalDuration / SCENES.length;
+  const sceneLocalT = currentTime - idx * segDur;
+  const activeScene = SCENES[idx];
+
+  // Update HUD
+  document.getElementById("hudScene").textContent = `SCENE ${idx + 1} • ${activeScene.expr.toUpperCase()}`;
+  document.getElementById("timeLabel").textContent = `${currentTime.toFixed(1)}s / ${totalDuration.toFixed(1)}s`;
+
+  // 1. Render 3D World background
+  renderThreeWorld(activeScene.env, currentTime, sceneLocalT);
+  mainCtx.drawImage(offThreeCanvas, 0, 0, W, H);
+
+  // 2. Atmospheric vignette & warm golden rim smoke if ending/golden
+  if (activeScene.env === "golden_smoke" || activeScene.expr === "ending") {
+    const glow = mainCtx.createRadialGradient(W * 0.35, H * 0.55, 40, W * 0.5, H * 0.55, W * 0.85);
+    glow.addColorStop(0, "rgba(255, 168, 76, 0.42)");
+    glow.addColorStop(0.5, "rgba(180, 85, 25, 0.18)");
+    glow.addColorStop(1, "rgba(10, 12, 16, 0.88)");
+    mainCtx.fillStyle = glow;
+    mainCtx.fillRect(0, 0, W, H);
+  } else {
+    const vig = mainCtx.createRadialGradient(W * 0.5, H * 0.5, W * 0.3, W * 0.5, H * 0.5, W * 0.95);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(5,7,12,0.55)");
+    mainCtx.fillStyle = vig;
+    mainCtx.fillRect(0, 0, W, H);
+  }
+
+  // 3. Draw Stickman Paperbag Character
+  const crumple = parseFloat(document.getElementById("crumpleRange")?.value || "1.0");
+  const hoodieHex = document.getElementById("hoodieColor")?.value || "#18191e";
+  drawPaperbagCharacter(mainCtx, W, H, {
+    expr: activeScene.expr,
+    pose: activeScene.pose,
+    view: activeScene.view,
+    crumple,
+    hoodieHex,
+    time: currentTime,
+    isEnding: activeScene.expr === "ending"
+  });
+
+  // 4. White 4-frame flash on scene transitions (from Bridge.tsx FLASH_AT)
+  if (idx > 0 && sceneLocalT < 0.12) {
+    const flashAlpha = (1 - sceneLocalT / 0.12) * 0.65;
+    mainCtx.fillStyle = `rgba(255, 255, 255, ${flashAlpha.toFixed(2)})`;
+    mainCtx.fillRect(0, 0, W, H);
+  }
+
+  // 5. Ending Look Banner ("BUILD SYSTEMS. NOT EGO.")
+  if (activeScene.expr === "ending" || idx === SCENES.length - 1 && sceneLocalT > segDur * 0.45) {
+    const bannerTxt = document.getElementById("bannerTextInput")?.value || "BUILD SYSTEMS. NOT EGO.";
+    const parts = bannerTxt.split(".");
+    mainCtx.save();
+    mainCtx.translate(W * 0.5, H * 0.22);
+    mainCtx.rotate(-0.08);
+    mainCtx.textAlign = "center";
+    mainCtx.font = "900 italic 68px system-ui, sans-serif";
+    mainCtx.lineWidth = 14;
+    mainCtx.strokeStyle = "#090a0f";
+    mainCtx.strokeText((parts[0] || "BUILD SYSTEMS") + ".", 0, 0);
+    mainCtx.fillStyle = "#f1f5f9";
+    mainCtx.fillText((parts[0] || "BUILD SYSTEMS") + ".", 0, 0);
+
+    if (parts[1] && parts[1].trim()) {
+      mainCtx.font = "900 italic 82px system-ui, sans-serif";
+      mainCtx.strokeText(parts[1].trim() + ".", 0, 86);
+      mainCtx.fillStyle = "#f5b041";
+      mainCtx.fillText(parts[1].trim() + ".", 0, 86);
+    }
+    mainCtx.restore();
+  }
+
+  // 6. Dynamic Word-by-Word Karaoke Subtitles (STYLE_BIBLE.md lower-middle spec)
+  const capOn = document.getElementById("captionToggle")?.value !== "off";
+  if (capOn && activeScene.text) {
+    const words = activeScene.text.trim().split(/\s+/);
+    const progress = Math.min(0.99, Math.max(0, sceneLocalT / segDur));
+    const wordIdx = Math.floor(progress * words.length);
+    // Group 2-3 words at a time like STYLE_BIBLE.md
+    const groupStart = Math.floor(wordIdx / 3) * 3;
+    const chunk = words.slice(groupStart, groupStart + 3).join(" ").toUpperCase();
+
+    mainCtx.save();
+    mainCtx.font = "900 58px system-ui, sans-serif";
+    mainCtx.textAlign = "center";
+    mainCtx.lineJoin = "round";
+    const cy = H * 0.79;
+    mainCtx.lineWidth = 16;
+    mainCtx.strokeStyle = "#08090c";
+    mainCtx.strokeText(chunk, W * 0.5, cy);
+    mainCtx.fillStyle = "#ffffff";
+    mainCtx.fillText(chunk, W * 0.5, cy);
+    mainCtx.restore();
+  }
+}
+
+// ============================================================================
+// 5. PROCEDURAL WEBAUDIO DSP SYNTHESIZER (Port of dsp.py, music.py, sfx.py)
+// ============================================================================
+let audioCtx = null;
+let audioDest = null;
+let bgmInterval = null;
+
+function initAudioEngine() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    audioDest = audioCtx.createMediaStreamDestination();
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function triggerStepDrum(timeOffset = 0, pitch = 65) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime + timeOffset;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(pitch * 2.2, now);
+  osc.frequency.exponentialRampToValueAtTime(pitch * 0.45, now + 0.14);
+
+  gain.gain.setValueAtTime(0.32, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  gain.connect(audioDest);
+  osc.start(now);
+  osc.stop(now + 0.17);
+}
+
+function triggerHiHat(timeOffset = 0) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime + timeOffset;
+  const bufSize = audioCtx.sampleRate * 0.05;
+  const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.3));
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.value = 5500;
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.12;
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  gain.connect(audioDest);
+  noise.start(now);
+}
+
+function startProceduralAudioLoop() {
+  initAudioEngine();
+  stopProceduralAudioLoop();
+  let step = 0;
+  bgmInterval = setInterval(() => {
+    if (!isPlaying && !isRecording) return;
+    const style = document.getElementById("bgmStyle")?.value || "dark_hiphop";
+    if (style === "march_bridge") {
+      triggerStepDrum(0, step % 2 === 0 ? 75 : 58);
+      if (step % 2 === 1) triggerHiHat(0.12);
+    } else if (style === "dark_hiphop") {
+      if (step % 4 === 0 || step % 4 === 2) triggerStepDrum(0, 55);
+      triggerHiHat(0);
+    } else {
+      if (step % 4 === 0) triggerStepDrum(0, 48);
+    }
+    step++;
+  }, 250);
+}
+
+function stopProceduralAudioLoop() {
+  if (bgmInterval) {
+    clearInterval(bgmInterval);
+    bgmInterval = null;
+  }
+}
+
+// ============================================================================
+// 6. TRANSPORT & DIRECT .MP4 EXPORT ENGINE (Mobile Chrome Optimized)
+// ============================================================================
+function getSupportedMp4MimeType() {
+  const candidates = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=avc1",
+    "video/mp4;codecs=h264",
+    "video/mp4",
+    "video/webm;codecs=h264",
+    "video/webm;codecs=vp9,opus",
+    "video/webm"
+  ];
+  for (const mime of candidates) {
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) {
+      return mime;
+    }
+  }
+  return "";
+}
+
+function tickLoop(timestamp) {
+  if (!isPlaying && !isRecording) return;
+  if (!lastTick) lastTick = timestamp;
+  const dt = Math.min(0.1, (timestamp - lastTick) / 1000);
+  lastTick = timestamp;
+
+  currentTime += dt;
+  if (currentTime >= totalDuration) {
+    if (isRecording) {
+      finishRecording();
+      return;
+    }
+    currentTime = 0;
+  }
+  document.getElementById("timelineSlider").value = currentTime;
+  drawCurrentFrame();
+  animFrameId = requestAnimationFrame(tickLoop);
+}
+
+document.getElementById("btnPlay").addEventListener("click", () => {
+  if (isRecording) return;
+  isPlaying = !isPlaying;
+  const btn = document.getElementById("btnPlay");
+  if (isPlaying) {
+    btn.textContent = "⏸ Pause Preview";
+    lastTick = 0;
+    startProceduralAudioLoop();
+    animFrameId = requestAnimationFrame(tickLoop);
+  } else {
+    btn.textContent = "▶ Play Preview + Audio";
+    stopProceduralAudioLoop();
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+  }
+});
+
+document.getElementById("timelineSlider").addEventListener("input", (e) => {
+  currentTime = parseFloat(e.target.value);
+  drawCurrentFrame();
+});
+
+document.getElementById("btnSnapshot").addEventListener("click", () => {
+  drawCurrentFrame();
+  const a = document.createElement("a");
+  a.download = `stickman_paperbag_frame_${Math.round(currentTime * 30)}.png`;
+  a.href = mainCanvas.toDataURL("image/png");
+  a.click();
+});
+
+let mediaRecorder = null;
+let recordedChunks = [];
+
+function finishRecording() {
+  isRecording = false;
+  isPlaying = false;
+  stopProceduralAudioLoop();
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+}
+
+document.getElementById("btnExportMp4").addEventListener("click", () => {
+  if (isRecording) return;
+  initAudioEngine();
+  isPlaying = false;
+  isRecording = true;
+  currentTime = 0;
+  lastTick = 0;
+  recordedChunks = [];
+
+  const btnExport = document.getElementById("btnExportMp4");
+  const hudStatus = document.getElementById("hudStatus");
+  btnExport.disabled = true;
+  btnExport.textContent = "⏳ Merender Video 1080×1920... Mohon Tunggu";
+  hudStatus.innerHTML = `<span class="rec-dot"></span>REC MP4`;
+
+  const canvasStream = mainCanvas.captureStream(30);
+  const combinedStream = new MediaStream([
+    ...canvasStream.getVideoTracks(),
+    ...(audioDest ? audioDest.stream.getAudioTracks() : [])
+  ]);
+
+  const mimeType = getSupportedMp4MimeType();
+  const options = mimeType ? { mimeType, videoBitsPerSecond: 8000000 } : { videoBitsPerSecond: 8000000 };
+
+  mediaRecorder = new MediaRecorder(combinedStream, options);
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+  };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: mimeType || "video/mp4" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stickman_paperbag_short_${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    btnExport.disabled = false;
+    btnExport.textContent = "🎬 Render & Download Video (.MP4)";
+    hudStatus.textContent = "EXPORT COMPLETE";
+  };
+
+  mediaRecorder.start(200);
+  startProceduralAudioLoop();
+  animFrameId = requestAnimationFrame(tickLoop);
+});
+
+// Initialize Studio on Load
+window.addEventListener("DOMContentLoaded", () => {
+  renderSceneInputs();
+  const mime = getSupportedMp4MimeType();
+  document.getElementById("codecSupportInfo").innerHTML =
+    `Codec Aktif: <code>${mime || 'default video/mp4'}</code> • Bitrate: <strong>8 Mbps Full HD (1080×1920 @ 30fps)</strong>`;
+  drawCurrentFrame();
+});
+</script>
+</body>
+</html>
